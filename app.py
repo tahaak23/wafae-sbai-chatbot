@@ -15,7 +15,7 @@ st.markdown("""
     .stApp { background-color: #F7F4EF; }
     .main { background-color: #F7F4EF; }
     section[data-testid="stSidebar"] { background-color: #F0EDE6; }
-    html, body, [class*="css"], p, span, div, label { color: #2C2C2C !important; font-family: 'Montserrat', sans-serif; font-weight: 300; }
+   html, body, [class*="css"] { color: #2C2C2C !important;
     header[data-testid="stHeader"] { background-color: #F7F4EF !important; }
     .stBottom, footer { background-color: #F7F4EF !important; }
     [data-testid="stChatMessageContent"] * { color: #2C2C2C !important; }
