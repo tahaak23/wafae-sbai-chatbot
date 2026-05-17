@@ -117,14 +117,14 @@ def get_infos_boutique():
             "paiement": "Cash"
         }
 
-def log_commande(nom, article, taille, couleur, ville, adresse, telephone):
+def log_commande(nom, article, taille_couleur, ville, adresse, telephone):
     try:
         client = get_gsheet_client()
         sheet = client.open_by_key(st.secrets["SHEET_ID"])
         ws = sheet.worksheet("Commandes")
         ws.append_row([
             datetime.now().strftime("%Y-%m-%d %H:%M"),
-            nom, article, taille, couleur, ville, adresse, telephone, "En attente"
+            nom, article, taille_couleur, "", ville, adresse, telephone, "En attente"
         ])
         return True
     except Exception as e:
@@ -153,34 +153,43 @@ def build_system_prompt(infos, stock_text):
     return f"""Nti Wafae — vendeuse f boutique Chez Wafae Sbai f Tanger.
 Kellmi bdarija tanjaouia qsira w naturelle.
 
-== STOCK — HAD GHIR HAD L-ARTICLES LI 3ANDNA ==
+== STOCK COMPLET — HAD GHIR HAD L-ARTICLES ==
 {stock_text}
 
 RÈGLE ABSOLUE: MACHI ABADAN tkteb article, couleur, taille machi f had l-liste.
 
 == RÈGLE PHOTO ==
-Ila cliente siyftat foto rose/vieux rose/pink:
+Ila cliente siyftat foto:
+
+foto rose/vieux rose/pink/saumon:
 → "Iyeh habibti, kayen 3andna ensemble f Rose b 350 MAD — tailles S,M,L,XL 🌸"
 
-Ila cliente siyftat foto jeans/pantalon bleu/noir:
-→ "Iyeh habibti, kayen 3andna Jeans slim f Bleu w Noir b 280 MAD 🌸"
+foto jaune/moutarde/camel/marron/beige chaud:
+→ "Iyeh habibti, kayen 3andna ensemble f [couleur] b 350 MAD — tailles S,M,L,XL 🌸"
+(couleurs disponibles f ensemble: Rose, Jaune, Marron, Camel)
 
-Ila cliente siyftat foto robe fleurie:
-→ "Iyeh habibti, kayen 3andna Robe d'été fleurie f Rouge w Blanc b 320 MAD 🌸"
+foto jeans/pantalon bleu denim/noir:
+→ "Iyeh habibti, kayen 3andna Jeans slim f Bleu w Noir b 280 MAD — pointures 38,40,42 🌸"
 
-Ila foto machi proche l-ay article:
+foto robe fleurie/robe d'été:
+→ "Iyeh habibti, kayen 3andna Robe d'été fleurie f Rouge w Blanc b 320 MAD — tailles S,M,L 🌸"
+
+foto sombre/floue/machi claire:
+→ "Smehli habibti, siyfti foto b d-daw mzyan — machi knt nqdar nshuf mezyan 🌸"
+
+foto machi proche l-ay article f l-stock:
 → "Smehli habibti, had style machi 3andna daba 🌸"
 
 == EXEMPLES EXACTS ==
 Salam → "Salam habibti! 🌸 Fayach nqdar n3awnek?"
-Prix → "Ensemble: 350 MAD 🌸"
+Prix → "[Article]: [Prix] MAD 🌸"
 Livraison → "Iyeh habibti, livraison f tout le Maroc — cash à la livraison 🌸"
 Horaires → "Mfet7in mn 11h l 22h30 kol yom 🌸"
 Cliente machi mhtamma → "Mrhba bik f ay waqt habibti 🌸"
 
 == RÈGLES STRICTES ==
 1. MAX 2 lignes f kol jawab
-2. MACHI "Fayach nqdar n3awnek" f kol message — ghir f l-bداية
+2. MACHI "Fayach nqdar n3awnek" — ghir f l-bداية
 3. MACHI "Shukran 3la l-visit" — HARAM
 4. Dir dima 🌸 — machi 💚 wala 👋
 5. MACHI numero dyal WhatsApp — HARAM
@@ -198,12 +207,12 @@ Livraison: {infos.get('livraison', 'Tout le Maroc')} — Cash à la livraison
 ETAPES = ["article", "nom", "taille_couleur", "ville", "adresse", "telephone"]
 
 QUESTIONS = {
-    "article":       "Chmen article bghiti?",
-    "nom":           "Smiytek?",
-    "taille_couleur":"Taille w couleur dyalek?",
-    "ville":         "Mdina dyalek?",
-    "adresse":       "3tini l-adresse dyalek?",
-    "telephone":     "W numero dyal téléphone?"
+    "article":        "Chmen article bghiti?",
+    "nom":            "Smiytek?",
+    "taille_couleur": "Taille w couleur dyalek?",
+    "ville":          "Mdina dyalek?",
+    "adresse":        "3tini l-adresse dyalek?",
+    "telephone":      "W numero dyal téléphone?"
 }
 
 def init_commande_state():
@@ -212,26 +221,25 @@ def init_commande_state():
     st.session_state.commande_data = {}
 
 def detect_order_intent(text):
-    keywords = ["commander","commande","bghit ncommand","bghit nchri","ana bghit","bghit nakhod","nchri","ncommand"]
+    keywords = ["commander","commande","bghit ncommand","bghit nchri",
+                "ana bghit","bghit nakhod","nchri","ncommand","bghit ndir commande"]
     return any(k in text.lower() for k in keywords)
 
 def handle_commande_step(user_input):
-    """Gère la prise de commande étape par étape — garanti sans saut."""
     etape = st.session_state.commande_etape
     data = st.session_state.commande_data
-
-    # Sauvegarder la réponse de l'étape actuelle
     data[etape] = user_input.strip()
     st.session_state.commande_data = data
 
-    # Trouver la prochaine étape
     idx = ETAPES.index(etape)
     if idx + 1 < len(ETAPES):
         prochaine = ETAPES[idx + 1]
         st.session_state.commande_etape = prochaine
+        prenom = data.get("nom", "")
+        if prenom and prochaine != "nom":
+            return f"Mzyan {prenom}! {QUESTIONS[prochaine]}"
         return f"Mzyan! {QUESTIONS[prochaine]}"
     else:
-        # Toutes les étapes complètes → enregistrer
         return finaliser_commande()
 
 def finaliser_commande():
@@ -240,17 +248,12 @@ def finaliser_commande():
         data.get("nom", "?"),
         data.get("article", "?"),
         data.get("taille_couleur", "?"),
-        data.get("taille_couleur", "?"),  # couleur = même champ
         data.get("ville", "?"),
         data.get("adresse", "?"),
         data.get("telephone", "?")
     )
-    # Reset state
     init_commande_state()
-    if success:
-        return "Commande dyalek weslatna! Wafae ghadi ttassel bik 🌸"
-    else:
-        return "Commande dyalek weslatna! Wafae ghadi ttassel bik 🌸"
+    return "Commande dyalek weslatna! Wafae ghadi ttassel bik 🌸"
 
 # ── CLAUDE API ────────────────────────────────────────────────────────────────
 MODEL = "claude-haiku-4-5-20251001"
@@ -273,7 +276,7 @@ def call_claude_with_image(image_b64, image_type, text, system_prompt):
         system=system_prompt,
         messages=[{"role": "user", "content": [
             {"type": "image", "source": {"type": "base64", "media_type": image_type, "data": image_b64}},
-            {"type": "text", "text": text if text else "Regardi had foto w suivis la règle photo f l-system prompt."}
+            {"type": "text", "text": text if text else "Regardi had foto w suivis la règle photo exactement."}
         ]}]
     )
     return response.content[0].text
@@ -369,15 +372,13 @@ if user_input := st.chat_input("Fayach nqdar n3awnek? (Darija / Français)"):
     with st.chat_message("assistant"):
         with st.spinner("..."):
 
-            # ── MODE COMMANDE ACTIVE (state machine) ──────────────────────────
+            # MODE COMMANDE ACTIVE
             if st.session_state.commande_active:
                 reply = handle_commande_step(user_input)
-                # Vérifier si commande finalisée (weslatna)
                 order_logged = "weslatna" in reply
 
-            # ── MODE NORMAL ───────────────────────────────────────────────────
+            # MODE NORMAL
             else:
-                # Détecter intention de commander
                 if detect_order_intent(user_input):
                     st.session_state.commande_active = True
                     st.session_state.commande_etape = "article"
