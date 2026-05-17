@@ -4,6 +4,7 @@ import gspread
 from google.oauth2.service_account import Credentials
 import json
 import base64
+import re
 from datetime import datetime
 
 st.set_page_config(page_title="Chez Wafae Sbai", page_icon="👗", layout="centered")
@@ -11,19 +12,15 @@ st.set_page_config(page_title="Chez Wafae Sbai", page_icon="👗", layout="cente
 st.markdown("""
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500&family=Montserrat:wght@300;400&display=swap" rel="stylesheet">
 <style>
-    /* Background */
     .stApp { background-color: #F7F4EF; }
     .main { background-color: #F7F4EF; }
     section[data-testid="stSidebar"] { background-color: #F0EDE6; }
-
-    /* Global font */
-    html, body, [class*="css"] {
-        font-family: 'Montserrat', sans-serif;
-        font-weight: 300;
-        color: #2C2C2C;
-    }
-
-    /* Header luxury */
+    html, body, [class*="css"], p, span, div, label { color: #2C2C2C !important; font-family: 'Montserrat', sans-serif; font-weight: 300; }
+    header[data-testid="stHeader"] { background-color: #F7F4EF !important; }
+    .stBottom, footer { background-color: #F7F4EF !important; }
+    [data-testid="stChatMessageContent"] * { color: #2C2C2C !important; }
+    section[data-testid="stSidebar"] * { color: #2C2C2C !important; }
+    .stChatMessage { border-radius: 4px; }
     .header-box {
         background-color: #F7F4EF;
         border-bottom: 1px solid #C8B89A;
@@ -37,7 +34,7 @@ st.markdown("""
         font-size: 2.2rem;
         letter-spacing: 0.18em;
         text-transform: uppercase;
-        color: #1A1A1A;
+        color: #1A1A1A !important;
         margin: 0 0 6px 0;
     }
     .header-box p {
@@ -46,14 +43,9 @@ st.markdown("""
         font-size: 0.72rem;
         letter-spacing: 0.15em;
         text-transform: uppercase;
-        color: #8A7A6A;
+        color: #8A7A6A !important;
         margin: 0;
     }
-
-    /* Chat messages */
-    .stChatMessage { border-radius: 4px; }
-
-    /* WhatsApp button */
     .whatsapp-btn {
         display: inline-block;
         background: #1A1A1A;
@@ -68,9 +60,6 @@ st.markdown("""
         text-transform: uppercase;
         margin-top: 10px;
     }
-    .whatsapp-btn:hover { background: #3A3A3A; }
-
-    /* Stock card */
     .stock-card {
         background: #FFFFFF;
         border: 1px solid #DDD8D0;
@@ -78,19 +67,12 @@ st.markdown("""
         padding: 14px 16px;
         margin: 8px 0;
     }
-
-    /* Form */
     div[data-testid="stForm"] {
         border: 1px solid #C8B89A;
         border-radius: 0;
         padding: 20px;
         background: #FDFAF6;
         margin-bottom: 20px;
-    }
-
-    /* Chat input */
-    .stChatInputContainer {
-        border-top: 1px solid #C8B89A !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -130,6 +112,19 @@ def get_infos_boutique():
         return {"boutique_nom":"Chez Wafae Sbai","adresse":"14 Rue Mohamed Abdou, Tanger 90000",
                 "whatsapp":"0777139312","horaires":"11h - 22h30","livraison":"Tout le Maroc","paiement":"Cash"}
 
+def log_commande(nom, article, taille, couleur, ville, adresse, telephone):
+    try:
+        client = get_gsheet_client()
+        sheet = client.open_by_key(st.secrets["SHEET_ID"])
+        ws = sheet.worksheet("Commandes")
+        ws.append_row([
+            datetime.now().strftime("%Y-%m-%d %H:%M"),
+            nom, article, taille, couleur, ville, adresse, telephone, "En attente"
+        ])
+        return True
+    except Exception as e:
+        return False
+
 def format_stock_for_prompt(stock):
     if not stock:
         return "Stock non disponible."
@@ -148,13 +143,6 @@ def build_system_prompt(infos, stock_text):
 Jawbi bdarija marocaine naturelle — kifma kat7ki nsa Tanger f reality.
 Style: chaleureuse, professionnelle, directe. Machi excessive.
 
-Exemples dyal darija marocaine:
-- "Salam habibti! Mrhba bik, Fayach nqdar n3awnek?"
-- "Iyeh kayen, zwin bzzaf!"
-- "Bghiti tchouf chi haja okhra?"
-- "Mzyan, chhal bghiti?"
-- "La, hadi machi disponible daba — kayen X bla7a"
-
 == INFOS BOUTIQUE ==
 Boutique: {infos.get('boutique_nom','Chez Wafae Sbai')}
 Adresse: {infos.get('adresse','14 Rue Mohamed Abdou, Tanger 90000')}
@@ -166,20 +154,29 @@ Paiement: {infos.get('paiement','Cash')}
 == STOCK DISPONIBLE ==
 {stock_text}
 
-== RÈGLES ==
+== RÈGLES GÉNÉRALES ==
 1. Jawbi dima bdarija marocaine naturelle, machi robotique
 2. Ila bghat article, etih l-info dyal taille, couleur, prix
-3. Pour commander, dir lien WhatsApp direct
-4. Ila machi disponible, goul b7al hadi w proposiha alternatives
-5. livraison n maroc kamel
-6. Paiement cash only
-7. Horaires: {infos.get('horaires','11h - 22h30')}
-8. Max 3-4 lignes — machi tawil
-9. Termina b proposer d'aider ou commander via WhatsApp
-10. Ila cliente siyftat foto, analyziha w goulha wach kayen chi haja pareille f l-stock
+3. Ila machi disponible, proposiha alternatives
+4. livraison n maroc kamel — paiement cash only
+5. Horaires: {infos.get('horaires','11h - 22h30')}
+6. Max 3-4 lignes — machi tawil
+7. Ila cliente siyftat foto, analyziha w goulha wach kayen chi haja pareille f l-stock
+
+== PRISE DE COMMANDE ==
+Ila cliente bghat tcommand, collecti had l-infos ÉTAPE PAR ÉTAPE (wahed wahed, machi kolchi f marra):
+ÉTAPE 1: "Smiytek?" (juste le prénom)
+ÉTAPE 2: "Chhal had l-article — taille w couleur?"
+ÉTAPE 3: "Fin tatskni? (ville)"
+ÉTAPE 4: "3tini l-adresse dyalek f details"
+ÉTAPE 5: "W numero dyal téléphone dyalek?"
+
+Ba3d ma collectiti kolchi, resumiha haka:
+"COMMANDE_READY|nom|article|taille|couleur|ville|adresse|telephone"
+
+C'est le signal pour enregistrer la commande. Goul lha: "Commande dyalek mregistrada! Wafae ghadi ttassel bik 🌸"
 """
 
-# ── CLAUDE ────────────────────────────────────────────────────────────────────
 def call_claude(messages_history, system_prompt):
     client = anthropic.Anthropic(api_key=st.secrets["ANTHROPIC_API_KEY"])
     response = client.messages.create(
@@ -195,14 +192,31 @@ def call_claude_with_image(image_b64, image_type, text, system_prompt):
         system=system_prompt,
         messages=[{"role":"user","content":[
             {"type":"image","source":{"type":"base64","media_type":image_type,"data":image_b64}},
-            {"type":"text","text": text if text else "Wach kayen had l-article f boutique? Etih l-info dyal taille, couleur, prix."}
+            {"type":"text","text": text if text else "Wach kayen had l-article f boutique?"}
         ]}]
     )
     return response.content[0].text
 
 def detect_order_intent(text):
-    keywords = ["commander","commande","bghit","acheter","achat","nakhod","nchri","howa","ana bghit"]
+    keywords = ["commander","commande","bghit","acheter","achat","nakhod","nchri","bghit ncommand","ana commander"]
     return any(k in text.lower() for k in keywords)
+
+def extract_and_log_commande(reply):
+    """Detect COMMANDE_READY signal and log to Google Sheets"""
+    if "COMMANDE_READY|" in reply:
+        try:
+            parts = reply.split("COMMANDE_READY|")[1].split("|")
+            if len(parts) >= 7:
+                nom, article, taille, couleur, ville, adresse, telephone = parts[:7]
+                success = log_commande(nom.strip(), article.strip(), taille.strip(), 
+                                       couleur.strip(), ville.strip(), adresse.strip(), telephone.strip())
+                clean_reply = reply.split("COMMANDE_READY|")[0].strip()
+                if not clean_reply:
+                    clean_reply = "Commande dyalek mregistrada! Wafae ghadi ttassel bik 🌸"
+                return clean_reply, True
+        except:
+            pass
+    return reply, False
 
 def show_whatsapp_btn(text=""):
     wa_msg = f"Salam Wafae, bghit ncommand — {text} 🌸" if text else "Salam Wafae, bghit ncommand 🌸"
@@ -228,7 +242,7 @@ with st.sidebar:
                 st.markdown(f"""<div class="stock-card">
                     <strong>{item.get('Nom_Article','')}</strong><br>
                     <small>📏 {item.get('Taille','')} &nbsp;|&nbsp; 🎨 {item.get('Couleur','')}</small><br>
-                    <strong style="color:#D4567A">{item.get('Prix_MAD','')} MAD</strong>
+                    <strong style="color:#8A7A6A">{item.get('Prix_MAD','')} MAD</strong>
                 </div>""", unsafe_allow_html=True)
     else:
         st.info("Chargement du stock...")
@@ -252,7 +266,7 @@ if not st.session_state.messages:
             "Yimken tsiyfti foto dyal article li bghiti! 📸"
         )
 
-# ── PHOTO FORM — uses st.form to avoid rerun issues ──────────────────────────
+# ── PHOTO FORM ────────────────────────────────────────────────────────────────
 with st.form(key="photo_form", clear_on_submit=True):
     st.markdown("📸 **Siyfti foto dyal article li bghiti**")
     uploaded_file = st.file_uploader("Choisir une photo", type=["jpg","jpeg","png","webp"], label_visibility="collapsed")
@@ -264,13 +278,10 @@ with st.form(key="photo_form", clear_on_submit=True):
         image_b64 = base64.b64encode(image_bytes).decode("utf-8")
         image_type = uploaded_file.type
 
-        # Show user message
         with st.chat_message("user"):
             st.image(uploaded_file, width=200)
             if photo_text:
                 st.markdown(photo_text)
-            else:
-                st.markdown("*(foto msiyfta)*")
 
         st.session_state.messages.append({
             "role": "user",
@@ -278,16 +289,15 @@ with st.form(key="photo_form", clear_on_submit=True):
             "image": image_b64
         })
 
-        # Get Claude response
         with st.chat_message("assistant"):
             with st.spinner("..."):
                 try:
                     reply = call_claude_with_image(image_b64, image_type, photo_text, system_prompt)
+                    reply, order_logged = extract_and_log_commande(reply)
                 except Exception:
-                    reply = "Smehli, kayen mochkil sgheir 🙏 Essayez encore ou contactez Wafae sur WhatsApp."
+                    reply = "Smehli, kayen mochkil sgheir 🙏 Contactez Wafae sur WhatsApp."
+                    order_logged = False
             st.markdown(reply)
-            if detect_order_intent(reply) or detect_order_intent(photo_text):
-                show_whatsapp_btn(photo_text)
 
         st.session_state.messages.append({"role":"assistant","content":reply})
 
@@ -295,7 +305,7 @@ with st.form(key="photo_form", clear_on_submit=True):
         st.warning("Siyfti foto l-awwel 📸")
 
 # ── TEXT CHAT ─────────────────────────────────────────────────────────────────
-if user_input := st.chat_input("Ash bghiti t3rfi? (Darija / Français)"):
+if user_input := st.chat_input("Fayach nqdar n3awnek? (Darija / Français)"):
     with st.chat_message("user"):
         st.markdown(user_input)
     st.session_state.messages.append({"role":"user","content":user_input})
@@ -309,10 +319,14 @@ if user_input := st.chat_input("Ash bghiti t3rfi? (Darija / Français)"):
         with st.spinner("..."):
             try:
                 reply = call_claude(history, system_prompt)
+                reply, order_logged = extract_and_log_commande(reply)
             except Exception:
-                reply = "Smehli, kayen mochkil sgheir 🙏 Essayez encore ou contactez Wafae sur WhatsApp."
+                reply = "Smehli, kayen mochkil sgheir 🙏 Contactez Wafae sur WhatsApp."
+                order_logged = False
+
         st.markdown(reply)
-        if detect_order_intent(user_input) or detect_order_intent(reply):
-            show_whatsapp_btn(user_input)
+
+        if order_logged:
+            st.success("✅ Commande enregistrée dans Google Sheets!")
 
     st.session_state.messages.append({"role":"assistant","content":reply})
