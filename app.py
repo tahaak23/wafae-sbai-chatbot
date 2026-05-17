@@ -203,7 +203,7 @@ Ila cliente bghat tcommand, collecti had l-infos ÉTAPE PAR ÉTAPE (wahed wahed,
 Ba3d ma collectiti kolchi, resumiha haka:
 "COMMANDE_READY|nom|article|taille|couleur|ville|adresse|telephone"
 
-C'est le signal pour enregistrer la commande. Goul lha: "Commande dyalek mregistrada! Wafae ghadi ttassel bik 🌸"
+C'est le signal pour enregistrer la commande. Goul lha: "Commande dyalek weslatna! Wafae ghadi ttassel bik 🌸"
 """
 
 # ── FIX: Nom du modèle correct ─────────────────────────────────────────────────
