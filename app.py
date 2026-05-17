@@ -4,7 +4,6 @@ import gspread
 from google.oauth2.service_account import Credentials
 import json
 import base64
-import re
 from datetime import datetime
 
 st.set_page_config(page_title="Chez Wafae Sbai", page_icon="👗", layout="centered")
@@ -87,7 +86,7 @@ st.markdown("""
 # ── GOOGLE SHEETS ─────────────────────────────────────────────────────────────
 @st.cache_resource
 def get_gsheet_client():
-    scopes = ["https://www.googleapis.com/auth/spreadsheets","https://www.googleapis.com/auth/drive"]
+    scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
     creds_dict = json.loads(st.secrets["GOOGLE_CREDENTIALS"])
     creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
     return gspread.authorize(creds)
@@ -129,6 +128,7 @@ def log_commande(nom, article, taille, couleur, ville, adresse, telephone):
         ])
         return True
     except Exception as e:
+        print(f"[ERROR log_commande] {str(e)}")
         return False
 
 def format_stock_for_prompt(stock):
@@ -136,11 +136,11 @@ def format_stock_for_prompt(stock):
         return "Stock non disponible."
     lines = []
     for item in stock:
-        if str(item.get("Stock_Dispo","")).lower() in ["oui","yes","1","true"]:
+        if str(item.get("Stock_Dispo", "")).lower() in ["oui", "yes", "1", "true"]:
             lines.append(
-                f"- {item.get('Nom_Article','?')} | {item.get('Categorie','?')} "
-                f"| Tailles: {item.get('Taille','?')} | Couleurs: {item.get('Couleur','?')} "
-                f"| Prix: {item.get('Prix_MAD','?')} MAD"
+                f"- {item.get('Nom_Article', '?')} | {item.get('Categorie', '?')} "
+                f"| Tailles: {item.get('Taille', '?')} | Couleurs: {item.get('Couleur', '?')} "
+                f"| Prix: {item.get('Prix_MAD', '?')} MAD"
             )
     return "\n".join(lines) if lines else "Pas d'articles disponibles."
 
@@ -149,65 +149,101 @@ def whatsapp_link(message, phone="212777139312"):
     return f"https://wa.me/{phone}?text={encoded}"
 
 def build_system_prompt(infos, stock_text):
-    return f"""Nti assistante dyal boutique Chez Wafae Sbai f Tanger, boutique dyal l'habillement.
-Jawbi 100% bdarija marocaine dyal Tanger.
+    return f"""Nti Wafae — vendeuse f boutique Chez Wafae Sbai f Tanger.
+Kellmi bdarija tanjaouia qsira w naturelle, bhal wa7da katkellem m3a sa7btha.
 
-Exemples EXACTS dyal réponses correctes:
-- Salam: "Salam habibti! Mrhba bik f Chez Wafae Sbai 🌸 Fayach nqdar n3awnek?"
-- Stock: "Iyeh habibti, kayen 3andna [article] f [couleur] b [prix] MAD 🌸"
-- Machi dispo: "La habibti, had l-article machi disponible daba. Kayen 3andna [alternative]"
-- Commander: "Mzyan habibti! 3tini smiytek?"
-- Bzaf articles: "Kayen 3andna bzaf dial l-articles zwinin!"
+== RÈGLE PRINCIPALE ==
+MAX 2 lignes f kol jawab. MACHI aktar. MACHI tawil. MACHI explication.
 
-MACHI had l-expressions ABADAN:
-- "Salam wa alaikum" → dir "Salam habibti"
-- "Chno li bghiti" → dir "Fayach nqdar n3awnek"
-- "bzaf dial les autres" → HARAM
-- "kifak ant" → HARAM
-- "chaleureuse" → parle darija pas français
+== EXEMPLES EXACTS — HADO GHIR HADO ==
+
+Salam / Bonjour:
+→ "Salam habibti! 🌸 Fayach nqdar n3awnek?"
+
+Stock / Article:
+→ "Iyeh kayen 3andna [article] b [prix] MAD — f [couleur] w taille [taille] 🌸"
+
+Machi disponible:
+→ "Kayen 3andna [alternative li proche] — wach hadi li bghiti? 🌸"
+
+Livraison:
+→ "Iyeh habibti, kaynin livraison f tout le Maroc — cash à la livraison 🌸"
+
+Horaires:
+→ "Mfet7in mn 11h l 22h30 kol yom 🌸"
+
+Commander:
+→ "Mzyan! Smiytek?"
+
+Après prénom:
+→ "Mzyan [prénom]! Taille w couleur dyalek?"
+
+Après taille/couleur:
+→ "Mdina dyalek?"
+
+Après ville:
+→ "3tini l-adresse dyalek?"
+
+Après adresse:
+→ "W numero dyal téléphone?"
+
+Fin commande:
+→ "Commande dyalek weslatna! Wafae ghadi ttassel bik 🌸"
+
+Cliente machi mhtamma:
+→ "Mrhba bik f ay waqt habibti 🌸"
+
+Question mafhomtch:
+→ "Smehli habibti, fssri liya shwiya 🌸"
+
+== RÈGLES STRICTES ==
+1. MACHI "Fayach nqdar n3awnek" f kol message — ghir f l-bداية
+2. MACHI "Shukran 3la l-visit" — HARAM
+3. MACHI "Lmahal dyal..." — HARAM
+4. MACHI phrases tawila — 2 lignes MAX
+5. MACHI "Salam wa alaikum" — dir "Salam habibti"
+6. MACHI emoji aktar mn wa7ed f message
+7. Dir dima 🌸 — machi 💚 wala 👋
+8. MACHI "Mdina dyalek?" o "Fin tatskni?" f nfs l-message — wa7da ghir wa7da
+9. MACHI ABADAN tkteb numero dyal WhatsApp — HARAM f ay jawab
+10. Ila cliente machi mhtamma → "Mrhba bik f ay waqt habibti 🌸"
+11. MACHI ABADAN "machi kayen f l-stock" — propossi TOUJOURS l-article li plus proche
+
+== RÈGLE PHOTO — TRÈS IMPORTANT ==
+Ila cliente siyftat foto (ay foto — screenshot, Instagram, Pinterest...):
+- MACHI t7kem 3la l-article exactement — enti machi expert photo
+- Cherchi f l-stock L-ARTICLE LI PROCHE F COULEUR W STYLE
+- Proposih DIRECTEMENT: "Kayen 3andna [article] f [couleur] b [prix] MAD — wach hadi li bghiti? 🌸"
+- MACHI dir "machi kayen hadik" — dir TOUJOURS l-alternative
+- Ila foto fiha chemise rose → cherchi f l-stock chi haja rose
+- Ila foto fiha jeans → cherchi f l-stock chi jeans
+- L-cliente hiya li 3arfa wach bghat — nti propossi w hiya tkhtar
 
 == INFOS BOUTIQUE ==
-Boutique: {infos.get('boutique_nom','Chez Wafae Sbai')}
-Adresse: {infos.get('adresse','14 Rue Mohamed Abdou, Tanger 90000')}
-WhatsApp: {infos.get('whatsapp','0777139312')}
-Horaires: {infos.get('horaires','11h - 22h30')}
-Livraison: {infos.get('livraison','Tout le Maroc')}
-Paiement: {infos.get('paiement','Cash')}
+Boutique: {infos.get('boutique_nom', 'Chez Wafae Sbai')}
+Adresse: {infos.get('adresse', '14 Rue Mohamed Abdou, Tanger 90000')}
+Horaires: {infos.get('horaires', '11h - 22h30')}
+Livraison: {infos.get('livraison', 'Tout le Maroc')} — Cash à la livraison
+Paiement: {infos.get('paiement', 'Cash')}
 
 == STOCK DISPONIBLE ==
 {stock_text}
 
-== RÈGLES GÉNÉRALES ==
-1. Jawbi dima bdarija marocaine naturelle, machi robotique
-2. Ila bghat article, etih l-info dyal taille, couleur, prix
-3. Ila machi disponible, proposiha alternatives
-4. Livraison n maroc kamel — paiement cash only
-5. Horaires: {infos.get('horaires','11h - 22h30')}
-6. Max 3-4 lignes — machi tawil
-7. Ila cliente siyftat foto, analyziha w goulha wach kayen chi haja pareille f l-stock
-8. Machi "Labas 3lik?" f la fin dyal message
-9. Machi "kif daba" — dir dima "Mrhba bik"
-10. Dir "kayen 3andna" machi "kayna lina"
-11. Dir "kayen 3andna bzaf dial les articles" — machi "haja bezzaf"
-12. MACHI 2 questions f nfs l-message — wahed ghir wahed
-13. Ba3d "Fayach nqdar n3awnek?" — STOP, matzidhach
-14. MACHI "Shnow l-ville dyalek" — dir dima "Mdina dyalek?"
+== PRISE DE COMMANDE — ÉTAPE PAR ÉTAPE ==
+Wahed wahed — machi kolchi f marra:
+1 → "Smiytek?"
+2 → "Mzyan [prénom]! Taille w couleur dyalek?"
+3 → "Mdina dyalek?"
+4 → "3tini l-adresse dyalek?"
+5 → "W numero dyal téléphone?"
 
-== PRISE DE COMMANDE ==
-Ila cliente bghat tcommand, collecti had l-infos ÉTAPE PAR ÉTAPE (wahed wahed, machi kolchi f marra):
-ÉTAPE 1: "Smiytek?" (juste le prénom)
-ÉTAPE 2: "Chhal had l-article — taille w couleur?"
-ÉTAPE 3: "Fin tatskni? (ville)"
-ÉTAPE 4: "3tini l-adresse dyalek f details"
-ÉTAPE 5: "W numero dyal téléphone dyalek?"
+Ba3d ma 3andek kolchi → ktib:
+COMMANDE_READY|nom|article|taille|couleur|ville|adresse|telephone
 
-Ba3d ma collectiti kolchi, resumiha haka:
-"COMMANDE_READY|nom|article|taille|couleur|ville|adresse|telephone"
-
-C'est le signal pour enregistrer la commande. Goul lha: "Commande dyalek weslatna! Wafae ghadi ttassel bik 🌸"
+Goul lha: "Commande dyalek weslatna! Wafae ghadi ttassel bik 🌸"
 """
 
-# ── FIX: Nom du modèle correct ─────────────────────────────────────────────────
+# ── MODÈLE ────────────────────────────────────────────────────────────────────
 MODEL = "claude-haiku-4-5-20251001"
 
 def call_claude(messages_history, system_prompt):
@@ -228,14 +264,10 @@ def call_claude_with_image(image_b64, image_type, text, system_prompt):
         system=system_prompt,
         messages=[{"role": "user", "content": [
             {"type": "image", "source": {"type": "base64", "media_type": image_type, "data": image_b64}},
-            {"type": "text", "text": text if text else "Wach kayen had l-article f boutique?"}
+            {"type": "text", "text": text if text else "Wach kayen f l-stock chi haja proche l-had l-article?"}
         ]}]
     )
     return response.content[0].text
-
-def detect_order_intent(text):
-    keywords = ["commander","commande","bghit","acheter","achat","nakhod","nchri","bghit ncommand","ana commander"]
-    return any(k in text.lower() for k in keywords)
 
 def extract_and_log_commande(reply):
     if "COMMANDE_READY|" in reply:
@@ -249,16 +281,11 @@ def extract_and_log_commande(reply):
                 )
                 clean_reply = reply.split("COMMANDE_READY|")[0].strip()
                 if not clean_reply:
-                    clean_reply = "Commande dyalek mregistrada! Wafae ghadi ttassel bik 🌸"
+                    clean_reply = "Commande dyalek weslatna! Wafae ghadi ttassel bik 🌸"
                 return clean_reply, True
         except:
             pass
     return reply, False
-
-def show_whatsapp_btn(text=""):
-    wa_msg = f"Salam Wafae, bghit ncommand — {text} 🌸" if text else "Salam Wafae, bghit ncommand 🌸"
-    wa_url = whatsapp_link(wa_msg)
-    st.markdown(f'<a href="{wa_url}" target="_blank" class="whatsapp-btn">📲 Commander sur WhatsApp</a>', unsafe_allow_html=True)
 
 # ── SESSION STATE ─────────────────────────────────────────────────────────────
 if "messages" not in st.session_state:
@@ -275,11 +302,11 @@ with st.sidebar:
     st.markdown("### 🛍️ Articles disponibles")
     if stock:
         for item in stock:
-            if str(item.get("Stock_Dispo","")).lower() in ["oui","yes","1","true"]:
+            if str(item.get("Stock_Dispo", "")).lower() in ["oui", "yes", "1", "true"]:
                 st.markdown(f"""<div class="stock-card">
-                    <strong>{item.get('Nom_Article','')}</strong><br>
-                    <small>📏 {item.get('Taille','')} &nbsp;|&nbsp; 🎨 {item.get('Couleur','')}</small><br>
-                    <strong style="color:#8A7A6A">{item.get('Prix_MAD','')} MAD</strong>
+                    <strong>{item.get('Nom_Article', '')}</strong><br>
+                    <small>📏 {item.get('Taille', '')} &nbsp;|&nbsp; 🎨 {item.get('Couleur', '')}</small><br>
+                    <strong style="color:#8A7A6A">{item.get('Prix_MAD', '')} MAD</strong>
                 </div>""", unsafe_allow_html=True)
     else:
         st.info("Chargement du stock...")
@@ -306,7 +333,7 @@ if not st.session_state.messages:
 # ── PHOTO FORM ────────────────────────────────────────────────────────────────
 with st.form(key="photo_form", clear_on_submit=True):
     st.markdown("📸 **Siyfti foto dyal article li bghiti**")
-    uploaded_file = st.file_uploader("Choisir une photo", type=["jpg","jpeg","png","webp"], label_visibility="collapsed")
+    uploaded_file = st.file_uploader("Choisir une photo", type=["jpg", "jpeg", "png", "webp"], label_visibility="collapsed")
     photo_text = st.text_input("Ash bghiti t3rfi 3la had l-article? (optionnel)", placeholder="Ex: wach kayen f rouge?")
     submit_photo = st.form_submit_button("📤 Siyfti had foto", type="primary")
 
@@ -332,9 +359,8 @@ with st.form(key="photo_form", clear_on_submit=True):
                     reply = call_claude_with_image(image_b64, image_type, photo_text, system_prompt)
                     reply, order_logged = extract_and_log_commande(reply)
                 except Exception as e:
-                    # Log l'erreur dans les logs Streamlit pour debug
-                    st.error(f"Debug: {str(e)}", icon="🔧")
-                    reply = "Smehli habibti, kayen chi mochkil sgheir 🙏 Contactez Wafae sur WhatsApp."
+                    print(f"[ERROR photo] {str(e)}")
+                    reply = "Smehli habibti, 3awdi siyfti foto 🌸"
                     order_logged = False
             st.markdown(reply)
 
@@ -360,9 +386,8 @@ if user_input := st.chat_input("Fayach nqdar n3awnek? (Darija / Français)"):
                 reply = call_claude(history, system_prompt)
                 reply, order_logged = extract_and_log_commande(reply)
             except Exception as e:
-                # Log l'erreur pour debug — visible dans Streamlit Cloud logs
-                print(f"[ERROR Claude API] {str(e)}")
-                reply = "Smehli habibti, kayen chi mochkil sgheir 🙏 Contactez Wafae sur WhatsApp."
+                print(f"[ERROR chat] {str(e)}")
+                reply = "Smehli habibti, 3awdi ktbi 🌸"
                 order_logged = False
 
         st.markdown(reply)
