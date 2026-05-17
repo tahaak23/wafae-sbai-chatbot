@@ -220,6 +220,7 @@ Cliente machi mhtamma:
 6. MACHI numero dyal WhatsApp — HARAM
 7. Ila cliente machi mhtamma → "Mrhba bik f ay waqt habibti 🌸"
 8. MACHI t-inventi article, couleur, taille machi f l-stock — HARAM
+9. MACHI ABADAN "Bghiti tshri?" — HARAM. Ba3d ma t3ti prix → STOP.
 
 == INFOS BOUTIQUE ==
 Boutique: {infos.get('boutique_nom', 'Chez Wafae Sbai')}
