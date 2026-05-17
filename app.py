@@ -9,39 +9,96 @@ from datetime import datetime
 st.set_page_config(page_title="Chez Wafae Sbai", page_icon="👗", layout="centered")
 
 st.markdown("""
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500&family=Montserrat:wght@300;400&display=swap" rel="stylesheet">
 <style>
-    .main { background-color: #FFF8F5; }
-    .stChatMessage { border-radius: 16px; }
+    /* Background */
+    .stApp { background-color: #F7F4EF; }
+    .main { background-color: #F7F4EF; }
+    section[data-testid="stSidebar"] { background-color: #F0EDE6; }
+
+    /* Global font */
+    html, body, [class*="css"] {
+        font-family: 'Montserrat', sans-serif;
+        font-weight: 300;
+        color: #2C2C2C;
+    }
+
+    /* Header luxury */
     .header-box {
-        background: linear-gradient(135deg, #D4567A, #E8A0B4);
-        color: white; padding: 18px 24px; border-radius: 16px;
-        text-align: center; margin-bottom: 20px;
+        background-color: #F7F4EF;
+        border-bottom: 1px solid #C8B89A;
+        padding: 28px 24px 20px;
+        text-align: center;
+        margin-bottom: 32px;
     }
-    .header-box h2 { margin: 0; font-size: 1.5rem; }
-    .header-box p  { margin: 4px 0 0; font-size: 0.85rem; opacity: 0.9; }
+    .header-box h2 {
+        font-family: 'Cormorant Garamond', serif;
+        font-weight: 300;
+        font-size: 2.2rem;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: #1A1A1A;
+        margin: 0 0 6px 0;
+    }
+    .header-box p {
+        font-family: 'Montserrat', sans-serif;
+        font-weight: 300;
+        font-size: 0.72rem;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        color: #8A7A6A;
+        margin: 0;
+    }
+
+    /* Chat messages */
+    .stChatMessage { border-radius: 4px; }
+
+    /* WhatsApp button */
     .whatsapp-btn {
-        display: inline-block; background: #25D366; color: white !important;
-        padding: 10px 20px; border-radius: 24px; text-decoration: none;
-        font-weight: 600; font-size: 0.95rem; margin-top: 8px;
+        display: inline-block;
+        background: #1A1A1A;
+        color: #F7F4EF !important;
+        padding: 10px 24px;
+        border-radius: 0;
+        text-decoration: none;
+        font-family: 'Montserrat', sans-serif;
+        font-weight: 400;
+        font-size: 0.78rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        margin-top: 10px;
     }
+    .whatsapp-btn:hover { background: #3A3A3A; }
+
+    /* Stock card */
     .stock-card {
-        background: white; border: 1px solid #F0D0DA;
-        border-radius: 12px; padding: 12px 16px; margin: 6px 0;
+        background: #FFFFFF;
+        border: 1px solid #DDD8D0;
+        border-radius: 0;
+        padding: 14px 16px;
+        margin: 8px 0;
     }
+
+    /* Form */
     div[data-testid="stForm"] {
-        border: 2px dashed #E8A0B4;
-        border-radius: 16px;
-        padding: 16px;
-        background: #FFF0F5;
-        margin-bottom: 16px;
+        border: 1px solid #C8B89A;
+        border-radius: 0;
+        padding: 20px;
+        background: #FDFAF6;
+        margin-bottom: 20px;
+    }
+
+    /* Chat input */
+    .stChatInputContainer {
+        border-top: 1px solid #C8B89A !important;
     }
 </style>
 """, unsafe_allow_html=True)
 
 st.markdown("""
 <div class="header-box">
-    <h2>👗 Chez Wafae Sbai</h2>
-    <p>14 Rue Mohamed Abdou, Tanger • 11h–22h30 • Livraison Maroc</p>
+    <h2>Chez Wafae Sbai</h2>
+    <p>14 Rue Mohamed Abdou, Tanger &nbsp;·&nbsp; 11h – 22h30 &nbsp;·&nbsp; Livraison Maroc</p>
 </div>
 """, unsafe_allow_html=True)
 
