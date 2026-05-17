@@ -49,7 +49,7 @@ st.markdown("""
     .whatsapp-btn {
         display: inline-block;
         background: #1A1A1A;
-        color: #F7F4EF !important;
+       color: #FFFFFF !important;
         padding: 10px 24px;
         border-radius: 0;
         text-decoration: none;
