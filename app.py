@@ -149,7 +149,7 @@ Jawbi bdarija marocaine naturelle — kifma kat7ki nsa Tanger f reality.
 Style: chaleureuse, professionnelle, directe. Machi excessive.
 
 Exemples dyal darija marocaine:
-- "Salam habibti! Mrhba bik, ash nqderek n3awnek?"
+- "Salam habibti! Mrhba bik, Fayach nqdar n3awnek?"
 - "Iyeh kayen, zwin bzzaf!"
 - "Bghiti tchouf chi haja okhra?"
 - "Mzyan, chhal bghiti?"
@@ -248,7 +248,7 @@ if not st.session_state.messages:
     with st.chat_message("assistant"):
         st.markdown(
             "Salam habibti! 👗 Mrhba bik f **Chez Wafae Sbai** 🌸\n\n"
-            "Ash nqderek n3awnek? — stock, prix, livraison, commande...\n"
+            "Fayach nqdar n3awnek? — stock, prix, livraison, commande...\n"
             "Yimken tsiyfti foto dyal article li bghiti! 📸"
         )
 
