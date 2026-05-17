@@ -189,6 +189,8 @@ Paiement: {infos.get('paiement','Cash')}
 9. Machi "kif daba" — dir dima "Mrhba bik"
 10. Dir "kayen 3andna" machi "kayna lina"
 11. Dir "kayen 3andna bzaf dial les articles" — machi "haja bezzaf"
+12. MACHI 2 questions f nfs l-message — wahed ghir wahed
+13. Ba3d "Fayach nqdar n3awnek?" — STOP, matzidhach
 
 == PRISE DE COMMANDE ==
 Ila cliente bghat tcommand, collecti had l-infos ÉTAPE PAR ÉTAPE (wahed wahed, machi kolchi f marra):
