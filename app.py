@@ -15,7 +15,7 @@ st.markdown("""
     .stApp { background-color: #F7F4EF; }
     .main { background-color: #F7F4EF; }
     section[data-testid="stSidebar"] { background-color: #F0EDE6; }
-   html, body, [class*="css"] { color: #2C2C2C !important;
+    html, body, [class*="css"] { color: #2C2C2C !important; }
     header[data-testid="stHeader"] { background-color: #F7F4EF !important; }
     .stBottom, footer { background-color: #F7F4EF !important; }
     [data-testid="stChatMessageContent"] * { color: #2C2C2C !important; }
@@ -49,7 +49,7 @@ st.markdown("""
     .whatsapp-btn {
         display: inline-block;
         background: #1A1A1A;
-       color: #FFFFFF !important;
+        color: #FFFFFF !important;
         padding: 10px 24px;
         border-radius: 0;
         text-decoration: none;
@@ -109,8 +109,14 @@ def get_infos_boutique():
         data = sheet.worksheet("Infos_Boutique").get_all_values()
         return {row[0]: row[1] for row in data if len(row) >= 2}
     except:
-        return {"boutique_nom":"Chez Wafae Sbai","adresse":"14 Rue Mohamed Abdou, Tanger 90000",
-                "whatsapp":"0777139312","horaires":"11h - 22h30","livraison":"Tout le Maroc","paiement":"Cash"}
+        return {
+            "boutique_nom": "Chez Wafae Sbai",
+            "adresse": "14 Rue Mohamed Abdou, Tanger 90000",
+            "whatsapp": "0777139312",
+            "horaires": "11h - 22h30",
+            "livraison": "Tout le Maroc",
+            "paiement": "Cash"
+        }
 
 def log_commande(nom, article, taille, couleur, ville, adresse, telephone):
     try:
@@ -131,11 +137,15 @@ def format_stock_for_prompt(stock):
     lines = []
     for item in stock:
         if str(item.get("Stock_Dispo","")).lower() in ["oui","yes","1","true"]:
-            lines.append(f"- {item.get('Nom_Article','?')} | {item.get('Categorie','?')} | Tailles: {item.get('Taille','?')} | Couleurs: {item.get('Couleur','?')} | Prix: {item.get('Prix_MAD','?')} MAD")
+            lines.append(
+                f"- {item.get('Nom_Article','?')} | {item.get('Categorie','?')} "
+                f"| Tailles: {item.get('Taille','?')} | Couleurs: {item.get('Couleur','?')} "
+                f"| Prix: {item.get('Prix_MAD','?')} MAD"
+            )
     return "\n".join(lines) if lines else "Pas d'articles disponibles."
 
 def whatsapp_link(message, phone="212777139312"):
-    encoded = message.replace(" ","%20").replace("\n","%0A")
+    encoded = message.replace(" ", "%20").replace("\n", "%0A")
     return f"https://wa.me/{phone}?text={encoded}"
 
 def build_system_prompt(infos, stock_text):
@@ -171,14 +181,14 @@ Paiement: {infos.get('paiement','Cash')}
 1. Jawbi dima bdarija marocaine naturelle, machi robotique
 2. Ila bghat article, etih l-info dyal taille, couleur, prix
 3. Ila machi disponible, proposiha alternatives
-4. livraison n maroc kamel — paiement cash only
+4. Livraison n maroc kamel — paiement cash only
 5. Horaires: {infos.get('horaires','11h - 22h30')}
 6. Max 3-4 lignes — machi tawil
 7. Ila cliente siyftat foto, analyziha w goulha wach kayen chi haja pareille f l-stock
 8. Machi "Labas 3lik?" f la fin dyal message
-9. Machi "kif daba" — dir dima "Labas 3lik?" ou "Mrhba bik"
+9. Machi "kif daba" — dir dima "Mrhba bik"
 10. Dir "kayen 3andna" machi "kayna lina"
-11. Dir "kayen 3andna bzaf dial les articles" — machi "haja bezzaf" w machi "bzaf dial les autres"
+11. Dir "kayen 3andna bzaf dial les articles" — machi "haja bezzaf"
 
 == PRISE DE COMMANDE ==
 Ila cliente bghat tcommand, collecti had l-infos ÉTAPE PAR ÉTAPE (wahed wahed, machi kolchi f marra):
@@ -194,22 +204,28 @@ Ba3d ma collectiti kolchi, resumiha haka:
 C'est le signal pour enregistrer la commande. Goul lha: "Commande dyalek mregistrada! Wafae ghadi ttassel bik 🌸"
 """
 
+# ── FIX: Nom du modèle correct ─────────────────────────────────────────────────
+MODEL = "claude-haiku-4-5-20251001"
+
 def call_claude(messages_history, system_prompt):
     client = anthropic.Anthropic(api_key=st.secrets["ANTHROPIC_API_KEY"])
     response = client.messages.create(
-        model="claude-haiku-4-5", max_tokens=600,
-        system=system_prompt, messages=messages_history
+        model=MODEL,
+        max_tokens=600,
+        system=system_prompt,
+        messages=messages_history
     )
     return response.content[0].text
 
 def call_claude_with_image(image_b64, image_type, text, system_prompt):
     client = anthropic.Anthropic(api_key=st.secrets["ANTHROPIC_API_KEY"])
     response = client.messages.create(
-        model="claude-haiku-4-5", max_tokens=600,
+        model=MODEL,
+        max_tokens=600,
         system=system_prompt,
-        messages=[{"role":"user","content":[
-            {"type":"image","source":{"type":"base64","media_type":image_type,"data":image_b64}},
-            {"type":"text","text": text if text else "Wach kayen had l-article f boutique?"}
+        messages=[{"role": "user", "content": [
+            {"type": "image", "source": {"type": "base64", "media_type": image_type, "data": image_b64}},
+            {"type": "text", "text": text if text else "Wach kayen had l-article f boutique?"}
         ]}]
     )
     return response.content[0].text
@@ -219,14 +235,15 @@ def detect_order_intent(text):
     return any(k in text.lower() for k in keywords)
 
 def extract_and_log_commande(reply):
-    """Detect COMMANDE_READY signal and log to Google Sheets"""
     if "COMMANDE_READY|" in reply:
         try:
             parts = reply.split("COMMANDE_READY|")[1].split("|")
             if len(parts) >= 7:
                 nom, article, taille, couleur, ville, adresse, telephone = parts[:7]
-                success = log_commande(nom.strip(), article.strip(), taille.strip(), 
-                                       couleur.strip(), ville.strip(), adresse.strip(), telephone.strip())
+                log_commande(
+                    nom.strip(), article.strip(), taille.strip(),
+                    couleur.strip(), ville.strip(), adresse.strip(), telephone.strip()
+                )
                 clean_reply = reply.split("COMMANDE_READY|")[0].strip()
                 if not clean_reply:
                     clean_reply = "Commande dyalek mregistrada! Wafae ghadi ttassel bik 🌸"
@@ -265,7 +282,7 @@ with st.sidebar:
         st.info("Chargement du stock...")
     st.markdown("---")
     wa_url = whatsapp_link("Salam Wafae, bghit nssuwwel 3la article 🌸")
-    st.markdown(f'<a href="{wa_url}" target="_blank" class="whatsapp-btn">💬 WhatsApp direct</a>', unsafe_allow_html=True)
+    st.markdown(f'<a href="{wa_url}" target="_blank" class="whatsapp-btn">💬 WhatsApp Direct</a>', unsafe_allow_html=True)
 
 # ── CHAT HISTORY ──────────────────────────────────────────────────────────────
 for msg in st.session_state.messages:
@@ -311,12 +328,14 @@ with st.form(key="photo_form", clear_on_submit=True):
                 try:
                     reply = call_claude_with_image(image_b64, image_type, photo_text, system_prompt)
                     reply, order_logged = extract_and_log_commande(reply)
-                except Exception:
-                    reply = "Smehli, kayen mochkil sgheir 🙏 Contactez Wafae sur WhatsApp."
+                except Exception as e:
+                    # Log l'erreur dans les logs Streamlit pour debug
+                    st.error(f"Debug: {str(e)}", icon="🔧")
+                    reply = "Smehli habibti, kayen chi mochkil sgheir 🙏 Contactez Wafae sur WhatsApp."
                     order_logged = False
             st.markdown(reply)
 
-        st.session_state.messages.append({"role":"assistant","content":reply})
+        st.session_state.messages.append({"role": "assistant", "content": reply})
 
     elif submit_photo and uploaded_file is None:
         st.warning("Siyfti foto l-awwel 📸")
@@ -325,7 +344,7 @@ with st.form(key="photo_form", clear_on_submit=True):
 if user_input := st.chat_input("Fayach nqdar n3awnek? (Darija / Français)"):
     with st.chat_message("user"):
         st.markdown(user_input)
-    st.session_state.messages.append({"role":"user","content":user_input})
+    st.session_state.messages.append({"role": "user", "content": user_input})
 
     history = [
         {"role": m["role"], "content": m["content"]}
@@ -337,8 +356,10 @@ if user_input := st.chat_input("Fayach nqdar n3awnek? (Darija / Français)"):
             try:
                 reply = call_claude(history, system_prompt)
                 reply, order_logged = extract_and_log_commande(reply)
-            except Exception:
-                reply = "Smehli, kayen mochkil sgheir 🙏 Contactez Wafae sur WhatsApp."
+            except Exception as e:
+                # Log l'erreur pour debug — visible dans Streamlit Cloud logs
+                print(f"[ERROR Claude API] {str(e)}")
+                reply = "Smehli habibti, kayen chi mochkil sgheir 🙏 Contactez Wafae sur WhatsApp."
                 order_logged = False
 
         st.markdown(reply)
@@ -346,4 +367,4 @@ if user_input := st.chat_input("Fayach nqdar n3awnek? (Darija / Français)"):
         if order_logged:
             st.success("✅ Commande enregistrée dans Google Sheets!")
 
-    st.session_state.messages.append({"role":"assistant","content":reply})
+    st.session_state.messages.append({"role": "assistant", "content": reply})
