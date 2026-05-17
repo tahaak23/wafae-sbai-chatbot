@@ -155,7 +155,7 @@ Paiement: {infos.get('paiement', 'Cash')}
 
 == RÈGLES ==
 1. Jawbi dima bdarija marocaine naturelle, machi robotique
-2. Ila bghat article, etih l-info dyal taille, couleur, prix
+2. Ila bghat article, etiha l-info dyal taille, couleur, prix
 3. Pour commander, dir lien WhatsApp direct
 4. Ila machi disponible, goul b7al hadi w proposiha alternatives
 5. livraison n maroc kamel
@@ -169,7 +169,7 @@ Paiement: {infos.get('paiement', 'Cash')}
 def call_claude(messages_history, system_prompt):
     client = anthropic.Anthropic(api_key=st.secrets["ANTHROPIC_API_KEY"])
     response = client.messages.create(
-        model="claude-sonnet-4-20250514",
+        model="claude-haiku-4-5",
         max_tokens=600,
         system=system_prompt,
         messages=messages_history
