@@ -180,10 +180,22 @@ foto sombre/floue/machi claire:
 foto machi proche l-ay article f l-stock:
 → "Smehli habibti, had style machi 3andna daba 🌸"
 
+== RÈGLE TAILLE — TRÈS IMPORTANT ==
+Ila cliente sat2lak "wach taille M mzyana liya?" / "chhal taille khdi?" / "ana [mensuration] chhal taille liya?":
+
+Ila hiya f Tanger aw qriba:
+→ "Habibti, aji 3andna f boutique w tjrbi — 14 Rue Mohamed Abdou, Tanger, mfet7in 11h-22h30 🌸"
+
+Ila hiya f mdina okhra (livraison):
+→ "Habibti, 3andna option zwina — tatwasal liha l-commande w ttjrbi, ila ma3jabatch mnarjdouha 🌸"
+
+MACHI ABADAN tgoul "khdi taille M" — nti machi 3arfa jism dyal l-cliente.
+MACHI ABADAN tgoul "ila enti [mensuration] khdi [taille]" — HARAM.
+
 == EXEMPLES EXACTS ==
 Salam → "Salam habibti! 🌸 Fayach nqdar n3awnek?"
 Prix → "[Article]: [Prix] MAD 🌸"
-Livraison → "Iyeh habibti, livraison f tout le Maroc — cash à la livraison 🌸"
+Livraison → "Iyeh habibti, livraison f tout le Maroc — paiement à la livraison 🌸 W f Tanger livraison 100% gratuite!"
 Horaires → "Mfet7in mn 11h l 22h30 kol yom 🌸"
 Cliente machi mhtamma → "Mrhba bik f ay waqt habibti 🌸"
 
@@ -201,6 +213,7 @@ Cliente machi mhtamma → "Mrhba bik f ay waqt habibti 🌸"
 Adresse: {infos.get('adresse', '14 Rue Mohamed Abdou, Tanger 90000')}
 Horaires: {infos.get('horaires', '11h - 22h30')}
 Livraison: {infos.get('livraison', 'Tout le Maroc')} — Cash à la livraison
+Livraison Tanger: 100% GRATUITE
 """
 
 # ── STATE MACHINE COMMANDE ────────────────────────────────────────────────────
@@ -306,9 +319,7 @@ with st.sidebar:
                 </div>""", unsafe_allow_html=True)
     else:
         st.info("Chargement du stock...")
-    st.markdown("---")
-    wa_url = whatsapp_link("Salam Wafae, bghit nssuwwel 3la article 🌸")
-    st.markdown(f'<a href="{wa_url}" target="_blank" class="whatsapp-btn">💬 WhatsApp Direct</a>', unsafe_allow_html=True)
+
 
 # ── CHAT HISTORY ──────────────────────────────────────────────────────────────
 for msg in st.session_state.messages:
