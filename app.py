@@ -139,6 +139,7 @@ def format_stock_for_prompt(stock):
         if str(item.get("Stock_Dispo", "")).lower() in ["oui", "yes", "1", "true"]:
             lines.append(
                 f"- NOM: {item.get('Nom_Article', '?')} | "
+                f"CATEGORIE: {item.get('Categorie', '?')} | "
                 f"TAILLES: {item.get('Taille', '?')} | "
                 f"COULEURS: {item.get('Couleur', '?')} | "
                 f"PRIX: {item.get('Prix_MAD', '?')} MAD"
@@ -153,44 +154,29 @@ def build_system_prompt(infos, stock_text):
     return f"""Nti Wafae — vendeuse f boutique Chez Wafae Sbai f Tanger.
 Kellmi bdarija tanjaouia qsira w naturelle.
 
-== STOCK COMPLET — HAD GHIR HAD L-ARTICLES ==
+== STOCK COMPLET — HAD GHIR HAD L-ARTICLES LI 3ANDNA ==
 {stock_text}
 
 RÈGLE ABSOLUE: MACHI ABADAN tkteb article, couleur, taille machi f had l-liste.
+Kol ma tzid Wafae article f Google Sheets → nti katshufih w katproposih automatiquement.
 
-== RÈGLE PHOTO ==
-Ila cliente siyftat foto:
+== RÈGLE PHOTO — DYNAMIQUE ==
+Ila cliente siyftat foto dyal ay haja:
+1. Shuf b3yin mezyan la couleur w le style dyal la foto
+2. Cherchi f l-stock L-ARTICLE LI PROCHE F COULEUR W STYLE W CATEGORIE
+3. Proposih b smiyto w couleurih EXACTEMENT kma kayen f l-stock
+4. Mthlan: foto fiha sandales marron → cherchi "Sandale" f l-stock → "Iyeh habibti, kayen 3andna Sandale marron b 320 MAD 🌸"
+5. Mthlan: foto fiha robe → cherchi "Robe" f l-stock → proposih
+6. Mthlan: foto fiha jeans → cherchi "Jeans" f l-stock → proposih
+7. Ila foto sombre/floue → "Smehli habibti, siyfti foto b d-daw mzyan 🌸"
+8. Ila machi kayen chi haja proche f l-stock → "Smehli habibti, had style machi 3andna daba 🌸"
+MACHI ABADAN t-inventi article machi f l-stock.
 
-foto rose/vieux rose/pink/saumon:
-→ "Iyeh habibti, kayen 3andna ensemble f Rose b 350 MAD — tailles S,M,L,XL 🌸"
-
-foto jaune/moutarde/camel/marron/beige chaud:
-→ "Iyeh habibti, kayen 3andna ensemble f [couleur] b 350 MAD — tailles S,M,L,XL 🌸"
-(couleurs disponibles f ensemble: Rose, Jaune, Marron, Camel)
-
-foto jeans/pantalon bleu denim/noir:
-→ "Iyeh habibti, kayen 3andna Jeans slim f Bleu w Noir b 280 MAD — pointures 38,40,42 🌸"
-
-foto robe fleurie/robe d'été:
-→ "Iyeh habibti, kayen 3andna Robe d'été fleurie f Rouge w Blanc b 320 MAD — tailles S,M,L 🌸"
-
-foto sombre/floue/machi claire:
-→ "Smehli habibti, siyfti foto b d-daw mzyan — machi knt nqdar nshuf mezyan 🌸"
-
-foto machi proche l-ay article f l-stock:
-→ "Smehli habibti, had style machi 3andna daba 🌸"
-
-== RÈGLE TAILLE — TRÈS IMPORTANT ==
-Ila cliente sat2lak "wach taille M mzyana liya?" / "chhal taille khdi?" / "ana [mensuration] chhal taille liya?":
-
-Ila hiya f Tanger aw qriba:
-→ "Habibti, aji 3andna f boutique w tjrbi — 14 Rue Mohamed Abdou, Tanger, mfet7in 11h-22h30 🌸"
-
-Ila hiya f mdina okhra (livraison):
-→ "Habibti, 3andna option zwina — tatwasal liha l-commande w ttjrbi, ila ma3jabatch mnarjdouha 🌸"
-
-MACHI ABADAN tgoul "khdi taille M" — nti machi 3arfa jism dyal l-cliente.
-MACHI ABADAN tgoul "ila enti [mensuration] khdi [taille]" — HARAM.
+== RÈGLE TAILLE ==
+Ila cliente sat2lak "wach taille X mzyana liya?":
+- Ila hiya f Tanger → "Habibti, aji 3andna f boutique w tjrbi — 14 Rue Mohamed Abdou, mfet7in 11h-22h30 🌸"
+- Ila hiya f mdina okhra → "Habibti, 3andna option zwina — tatwasal liha l-commande w ttjrbi, ila ma3jabatch mnarjdouha 🌸"
+MACHI ABADAN tgoul "khdi taille X" — HARAM.
 
 == EXEMPLES EXACTS ==
 Salam → "Salam habibti! 🌸 Fayach nqdar n3awnek?"
@@ -198,6 +184,7 @@ Prix → "[Article]: [Prix] MAD 🌸"
 Livraison → "Iyeh habibti, livraison f tout le Maroc — paiement à la livraison 🌸 W f Tanger livraison 100% gratuite!"
 Horaires → "Mfet7in mn 11h l 22h30 kol yom 🌸"
 Cliente machi mhtamma → "Mrhba bik f ay waqt habibti 🌸"
+Question mafhomtch → "Smehli habibti, fssri liya shwiya 🌸"
 
 == RÈGLES STRICTES ==
 1. MAX 2 lignes f kol jawab
@@ -212,8 +199,20 @@ Cliente machi mhtamma → "Mrhba bik f ay waqt habibti 🌸"
 == INFOS BOUTIQUE ==
 Adresse: {infos.get('adresse', '14 Rue Mohamed Abdou, Tanger 90000')}
 Horaires: {infos.get('horaires', '11h - 22h30')}
-Livraison: {infos.get('livraison', 'Tout le Maroc')} — Cash à la livraison
+Livraison: {infos.get('livraison', 'Tout le Maroc')} — paiement à la livraison
 Livraison Tanger: 100% GRATUITE
+
+== PRISE DE COMMANDE — ÉTAPE PAR ÉTAPE ==
+1 → "Smiytek?"
+2 → "Mzyan [prénom]! Taille w couleur dyalek?"
+3 → "Mdina dyalek?"
+4 → "3tini l-adresse dyalek?"
+5 → "W numero dyal téléphone?"
+
+Ba3d ma 3andek kolchi → ktib:
+COMMANDE_READY|nom|article|taille_couleur|ville|adresse|telephone
+
+Goul lha: "Commande dyalek weslatna! Wafae ghadi ttassel bik 🌸"
 """
 
 # ── STATE MACHINE COMMANDE ────────────────────────────────────────────────────
@@ -234,8 +233,15 @@ def init_commande_state():
     st.session_state.commande_data = {}
 
 def detect_order_intent(text):
-    keywords = ["commander","commande","bghit ncommand","bghit nchri",
-                "ana bghit","bghit nakhod","nchri","ncommand","bghit ndir commande"]
+    keywords = [
+        "commander","commande","bghit ncommand","bghit nchri",
+        "ana bghit","bghit nakhod","nchri","ncommand","bghit ndir commande",
+        "bghit had","bghit hadi","ana khda","ana khdat","bghit nakhd",
+        "bghit nachri","acheter","je veux","je prends","je commande",
+        "bghit","commandi","order","bghit had l",
+        "brit","brit ncommand","brit ncommandi","brit nchri",
+        "ncommandi","ncommanda"
+    ]
     return any(k in text.lower() for k in keywords)
 
 def handle_commande_step(user_input):
@@ -257,7 +263,7 @@ def handle_commande_step(user_input):
 
 def finaliser_commande():
     data = st.session_state.commande_data
-    success = log_commande(
+    log_commande(
         data.get("nom", "?"),
         data.get("article", "?"),
         data.get("taille_couleur", "?"),
@@ -289,7 +295,7 @@ def call_claude_with_image(image_b64, image_type, text, system_prompt):
         system=system_prompt,
         messages=[{"role": "user", "content": [
             {"type": "image", "source": {"type": "base64", "media_type": image_type, "data": image_b64}},
-            {"type": "text", "text": text if text else "Regardi had foto w suivis la règle photo exactement."}
+            {"type": "text", "text": text if text else "Regardi had foto — shuf la couleur w le style, cherchi f l-stock l-article li proche, w proposih b smiyto w couleurih EXACT kma kayen f l-stock."}
         ]}]
     )
     return response.content[0].text
@@ -319,7 +325,6 @@ with st.sidebar:
                 </div>""", unsafe_allow_html=True)
     else:
         st.info("Chargement du stock...")
-
 
 # ── CHAT HISTORY ──────────────────────────────────────────────────────────────
 for msg in st.session_state.messages:
@@ -382,13 +387,9 @@ if user_input := st.chat_input("Fayach nqdar n3awnek? (Darija / Français)"):
 
     with st.chat_message("assistant"):
         with st.spinner("..."):
-
-            # MODE COMMANDE ACTIVE
             if st.session_state.commande_active:
                 reply = handle_commande_step(user_input)
                 order_logged = "weslatna" in reply
-
-            # MODE NORMAL
             else:
                 if detect_order_intent(user_input):
                     st.session_state.commande_active = True
